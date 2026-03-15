@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: oklch(0.09 0.005 264);
+  --color-card: oklch(0.13 0.005 264);
+  --color-border: oklch(0.22 0.005 264);
+  --color-primary: oklch(0.55 0.18 250);
+  --radius: 0.5rem;
+}
+
+body {
+  background-color: var(--color-background);
+  color: oklch(0.95 0.005 264);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}

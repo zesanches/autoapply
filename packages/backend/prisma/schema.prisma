@@ -1,0 +1,240 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ──────────────────────────────────────
+// Better Auth tables (gerenciadas pelo plugin)
+// ──────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  sessions      Session[]
+  accounts      Account[]
+  profile       UserProfile?
+  credits       CreditBalance?
+  applications  Application[]
+  searchHistory SearchHistory[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verifications")
+}
+
+// ──────────────────────────────────────
+// Domain tables
+// ──────────────────────────────────────
+
+model UserProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  fullName     String
+  phone        String?
+  location     String?
+  linkedinUrl  String?
+  portfolioUrl String?
+  resumeUrl    String?  // URL do arquivo no storage
+  resumeData   Json?    // Dados parseados do currículo (para preenchimento)
+  skills       String[] // Array de skills
+  experience   Json?    // Histórico profissional estruturado
+  education    Json?    // Formação acadêmica estruturada
+  preferences  Json?    // Preferências de vaga (salário, remoto, etc.)
+  isComplete   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model CreditBalance {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  available Int      @default(0) // Créditos disponíveis
+  reserved  Int      @default(0) // Créditos reservados (em processamento)
+  totalUsed Int      @default(0) // Total já consumido
+  plan      Plan     @default(FREE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions CreditTransaction[]
+
+  @@map("credit_balances")
+}
+
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+model CreditTransaction {
+  id        String                 @id @default(cuid())
+  balanceId String
+  amount    Int // positivo = crédito, negativo = débito
+  type      CreditTransactionType
+  status    CreditTransactionStatus
+  reason    String? // "application_to_indeed", "plan_purchase", etc.
+  metadata  Json?                  // IDs relacionados
+  createdAt DateTime               @default(now())
+
+  balance CreditBalance @relation(fields: [balanceId], references: [id])
+
+  @@index([balanceId, createdAt])
+  @@map("credit_transactions")
+}
+
+enum CreditTransactionType {
+  PURCHASE // Compra de créditos
+  GRANT    // Créditos gratuitos (free tier)
+  DEBIT    // Uso de crédito (candidatura)
+  REFUND   // Devolução (falha na candidatura)
+}
+
+enum CreditTransactionStatus {
+  PENDING
+  RESERVED
+  CONFIRMED
+  ROLLED_BACK
+}
+
+model JobListing {
+  id          String    @id @default(cuid())
+  externalId  String    // ID na plataforma original
+  platform    String    // 'indeed' | 'linkedin'
+  title       String
+  company     String
+  location    String?
+  salary      String?   // Range como texto (varia muito entre plataformas)
+  description String?   // Texto completo da vaga
+  url         String
+  postedAt    DateTime?
+  scrapedAt   DateTime  @default(now())
+  metadata    Json?     // Dados extras da plataforma
+  isActive    Boolean   @default(true)
+
+  applications Application[]
+
+  @@unique([externalId, platform])
+  @@index([platform, isActive])
+  @@map("job_listings")
+}
+
+model Application {
+  id          String            @id @default(cuid())
+  userId      String
+  jobId       String
+  batchId     String?           // Agrupamento de candidaturas em lote
+  status      ApplicationStatus @default(QUEUED)
+  attempts    Int               @default(0)
+  maxAttempts Int               @default(5)
+  lastError   String?
+  submittedAt DateTime?
+  formData    Json?             // Snapshot dos dados enviados
+  metadata    Json?             // Logs, screenshots, etc.
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  user User       @relation(fields: [userId], references: [id])
+  job  JobListing @relation(fields: [jobId], references: [id])
+
+  @@unique([userId, jobId]) // Evita candidatura duplicada
+  @@index([userId, status])
+  @@index([batchId])
+  @@map("applications")
+}
+
+enum ApplicationStatus {
+  QUEUED
+  APPLYING
+  SUBMITTED
+  FAILED
+  RETRYING
+  EXHAUSTED
+}
+
+model SearchHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  query     String
+  platform  String
+  filters   Json?    // Localização, salário, remoto, etc.
+  results   Int      // Quantidade de resultados
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("search_history")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?  // Nullable — sobrevive a exclusão de conta (sem FK)
+  action    String   // ex: "application.submitted", "account.deleted"
+  resource  String?  // ex: "application:clxyz"
+  metadata  Json?    // Dados adicionais (sem PII)
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}
