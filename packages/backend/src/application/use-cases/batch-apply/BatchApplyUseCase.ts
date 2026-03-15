@@ -13,6 +13,7 @@ const BATCH_JOB_JITTER_MS = 30_000;
 export interface BatchApplyInput {
   userId: string;
   jobIds: string[];
+  noDelay?: boolean;
 }
 
 export interface BatchApplyOutput {
@@ -30,7 +31,7 @@ export class BatchApplyUseCase {
   ) {}
 
   async execute(input: BatchApplyInput): Promise<BatchApplyOutput> {
-    const { userId, jobIds } = input;
+    const { userId, jobIds, noDelay = false } = input;
 
     // Check profile completeness
     const profile = await this.profileRepository.findByUserId(userId);
@@ -67,8 +68,9 @@ export class BatchApplyUseCase {
 
     // Create application records and enqueue jobs
     const jobs = newJobIds.map((jobId, i) => {
-      const delay =
-        i * (BATCH_JOB_BASE_DELAY_MS + Math.floor(Math.random() * BATCH_JOB_JITTER_MS));
+      const delay = noDelay
+        ? 0
+        : i * (BATCH_JOB_BASE_DELAY_MS + Math.floor(Math.random() * BATCH_JOB_JITTER_MS));
       return { jobId, delay };
     });
 

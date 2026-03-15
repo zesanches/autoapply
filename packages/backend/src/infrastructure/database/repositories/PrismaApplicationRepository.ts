@@ -48,7 +48,7 @@ function toDomain(row: {
 }
 
 export class PrismaApplicationRepository implements IApplicationRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaClient) { }
 
   async findById(id: string): Promise<Application | null> {
     const row = await this.prisma.application.findUnique({ where: { id } });

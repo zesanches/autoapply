@@ -38,6 +38,19 @@ export interface Application {
   }
 }
 
+export interface UserProfile {
+  id: string
+  userId: string
+  fullName: string
+  phone: string | null
+  location: string | null
+  linkedinUrl: string | null
+  resumeUrl: string | null
+  resumeData: unknown | null
+  skills: string[]
+  isComplete: boolean
+}
+
 export interface JobSearchParams {
   q: string
   platform: Platform
@@ -51,6 +64,17 @@ export const dashboardApi = {
     api.get('dashboard/stats').json<ApiSuccessResponse<DashboardStats>>(),
 }
 
+export const profileApi = {
+  get: () =>
+    api.get('profile').json<ApiSuccessResponse<UserProfile>>(),
+
+  uploadResume: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return api.post('profile/resume', { body: form }).json<ApiSuccessResponse<{ resumeUrl: string; isComplete: boolean }>>()
+  },
+}
+
 export const jobsApi = {
   search: (params: JobSearchParams) =>
     api
@@ -58,7 +82,7 @@ export const jobsApi = {
       .json<ApiSuccessResponse<JobListing[]> & { meta: PaginationMeta }>(),
 
   apply: (jobId: string) =>
-    api.post('applications', { json: { jobId } }).json<ApiSuccessResponse<Application>>(),
+    api.post('applications', { json: { jobId } }).json<ApiSuccessResponse<{ batchId: string; enqueued: number }>>(),
 
   batchApply: (jobIds: string[]) =>
     api

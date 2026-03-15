@@ -1,12 +1,24 @@
+import { PrismaClient } from "@prisma/client";
 import { env } from "./shared/config/env.js";
 import { logger } from "./shared/logger/index.js";
+import { BrowserPool } from "./infrastructure/browser/BrowserPool.js";
 import { createApplicationWorker } from "./infrastructure/queue/workers/ApplicationWorker.js";
 import { createSearchWorker } from "./infrastructure/queue/workers/SearchWorker.js";
 
 async function main(): Promise<void> {
   logger.info("Starting AutoApply Worker...");
 
-  const applicationWorker = createApplicationWorker(env.REDIS_URL, logger);
+  const prisma = new PrismaClient({
+    log: env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+  });
+
+  const browserPool = new BrowserPool({ maxInstances: env.MAX_BROWSER_INSTANCES });
+
+  const applicationWorker = createApplicationWorker(env.REDIS_URL, {
+    prisma,
+    browserPool,
+    logger,
+  });
   const searchWorker = createSearchWorker(env.REDIS_URL, logger);
 
   logger.info("Workers started");
@@ -18,6 +30,8 @@ async function main(): Promise<void> {
       applicationWorker.close(),
       searchWorker.close(),
     ]);
+    await browserPool.close();
+    await prisma.$disconnect();
     logger.info("Workers shut down gracefully");
     process.exit(0);
   };
