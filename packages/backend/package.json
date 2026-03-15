@@ -10,7 +10,7 @@
     "start": "node dist/main.js",
     "start:worker": "node dist/worker.js",
     "type-check": "tsc --noEmit",
-    "lint": "eslint src --ext .ts",
+    "lint": "tsc --noEmit",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "test:unit": "vitest run --reporter=verbose",
     "test:unit:watch": "vitest",

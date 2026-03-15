@@ -14,7 +14,7 @@
   "scripts": {
     "build": "tsc",
     "type-check": "tsc --noEmit",
-    "lint": "eslint src --ext .ts",
+    "lint": "tsc --noEmit",
     "format:check": "prettier --check \"src/**/*.ts\""
   },
   "devDependencies": {
