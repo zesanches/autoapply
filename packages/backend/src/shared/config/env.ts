@@ -11,6 +11,7 @@ const EnvSchema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   SENTRY_DSN: z.string().url().optional().or(z.literal("").transform(() => undefined)),
   MAX_BROWSER_INSTANCES: z.coerce.number().int().positive().default(3),
+  UPLOAD_DIR: z.string().default("./uploads"),
   LOG_LEVEL: z
     .enum(["trace", "debug", "info", "warn", "error", "fatal", "silent"])
     .default("info"),

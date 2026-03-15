@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import fastifyCors from "@fastify/cors";
+import fastifyMultipart from "@fastify/multipart";
 import { fromNodeHeaders } from "better-auth/node";
 import { env } from "../../shared/config/env.js";
 import { logger } from "../../shared/logger/index.js";
@@ -18,7 +19,7 @@ export async function createServer(container: Container) {
   const app = Fastify({
     logger: false, // Using pino directly
     trustProxy: env.NODE_ENV === "production",
-    bodyLimit: 1024 * 1024, // 1mb
+    bodyLimit: 10 * 1024 * 1024, // 10MB for resume uploads
     requestTimeout: 60_000, // Browser automation (job search) can take up to ~15s
   });
 
@@ -31,6 +32,12 @@ export async function createServer(container: Container) {
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   });
   await app.register(securityPlugin);
+  await app.register(fastifyMultipart, {
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB
+      files: 1,
+    },
+  });
 
   // Auth session extraction — must be on root app to apply globally
   app.decorateRequest("userId", undefined);

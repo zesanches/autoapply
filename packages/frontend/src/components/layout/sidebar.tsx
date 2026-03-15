@@ -1,11 +1,12 @@
 import { Link } from '@tanstack/react-router'
-import { LayoutDashboard, Search, FileText } from 'lucide-react'
+import { LayoutDashboard, Search, FileText, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
 const navLinks = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/jobs', label: 'Vagas', icon: Search },
   { to: '/applications', label: 'Candidaturas', icon: FileText },
+  { to: '/settings', label: 'Configurações', icon: Settings },
 ] as const
 
 export function Sidebar() {

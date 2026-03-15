@@ -6,8 +6,31 @@ const BatchApplyBodySchema = z.object({
   jobIds: z.array(z.string()).min(1).max(50),
 });
 
+const SingleApplyBodySchema = z.object({
+  jobId: z.string().min(1),
+});
+
 export function applicationsRoutes(container: Container) {
   return async function (app: FastifyInstance): Promise<void> {
+    // POST /api/applications — single apply (no delay, reuses BatchApplyUseCase with 1 job)
+    app.post("/", async (req, reply) => {
+      if (!req.userId) {
+        return reply.status(401).send({
+          success: false,
+          error: { code: "UNAUTHORIZED", message: "Authentication required" },
+        });
+      }
+
+      const body = SingleApplyBodySchema.parse(req.body);
+      const result = await container.useCases.batchApply.execute({
+        userId: req.userId,
+        jobIds: [body.jobId],
+        noDelay: true,
+      });
+
+      return reply.status(202).send({ success: true, data: result });
+    });
+
     app.post("/batch", async (req, reply) => {
       if (!req.userId) {
         return reply.status(401).send({

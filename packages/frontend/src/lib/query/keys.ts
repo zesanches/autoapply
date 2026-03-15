@@ -12,4 +12,7 @@ export const queryKeys = {
   credits: {
     balance: () => ['credits', 'balance'] as const,
   },
+  profile: {
+    me: () => ['profile', 'me'] as const,
+  },
 } as const

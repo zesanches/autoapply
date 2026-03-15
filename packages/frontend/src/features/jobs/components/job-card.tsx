@@ -1,8 +1,12 @@
-import { MapPin, Building2, ExternalLink } from 'lucide-react'
+import { MapPin, Building2, ExternalLink, Zap, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils/cn'
 import type { JobListing } from '@/lib/api/endpoints'
+import { useProfile } from '@/features/profile/hooks/use-profile'
+import { useSingleApply } from '../hooks/use-single-apply'
 
 interface JobCardProps {
   job: JobListing
@@ -11,6 +15,26 @@ interface JobCardProps {
 }
 
 export function JobCard({ job, selected, onToggle }: JobCardProps) {
+  const { data: profileRes } = useProfile()
+  const apply = useSingleApply()
+
+  const handleApply = (e: React.MouseEvent) => {
+    e.stopPropagation()
+
+    if (!profileRes?.data?.resumeUrl) {
+      toast.warning('Currículo não encontrado', {
+        description: 'Vá em Configurações e faça upload do seu currículo antes de aplicar.',
+        action: { label: 'Configurações', onClick: () => { window.location.href = '/settings' } },
+      })
+      return
+    }
+
+    apply.mutate(job.id)
+  }
+
+  const isApplied = apply.isSuccess
+  const isLoading = apply.isPending
+
   return (
     <Card
       className={cn(
@@ -63,6 +87,20 @@ export function JobCard({ job, selected, onToggle }: JobCardProps) {
             >
               <ExternalLink className="h-4 w-4" />
             </a>
+            <Button
+              size="sm"
+              variant={isApplied ? 'secondary' : 'default'}
+              className="h-7 px-2 text-xs"
+              onClick={handleApply}
+              disabled={isLoading || isApplied}
+            >
+              {isLoading ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Zap className="h-3 w-3" />
+              )}
+              <span className="ml-1">{isApplied ? 'Na fila' : 'Aplicar'}</span>
+            </Button>
           </div>
         </div>
       </CardContent>
