@@ -89,7 +89,7 @@ export function JobCard({ job, selected, onToggle }: JobCardProps) {
             </a>
             <Button
               size="sm"
-              variant={isApplied ? 'secondary' : 'default'}
+              variant={isApplied ? 'outline' : 'default'}
               className="h-7 px-2 text-xs"
               onClick={handleApply}
               disabled={isLoading || isApplied}
